@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PANATTA // VISUAL GYM LOGGER</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            carbon: '#090a0f',
+            card: '#12151e',
+            cardLight: '#191d29',
+            panatta: '#e6192e',
+            lime: '#b8ff01',
+            amberWarn: '#ffb800'
+          },
+          fontFamily: {
+            display: ['"Chakra Petch"', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root { color-scheme: dark; }
+    * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    body {
+      background-color: #090a0f;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .done-row {
+      background: linear-gradient(90deg, rgba(184,255,1,0.12) 0%, rgba(18,21,30,0.95) 100%);
+      border-color: rgba(184,255,1,0.55) !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-28 bg-carbon text-gray-100">
+
+  <!-- MOBILE APP SHELL (Centered max-w-md on desktop, 100% native fit on phone) -->
+  <div class="max-w-md mx-auto min-h-screen flex flex-col">
+
+    <!-- STICKY TOP BAR: TIMERS & DAY PILLS -->
+    <header class="sticky top-0 z-40 bg-carbon/95 backdrop-blur-md border-b border-gray-800/90 px-3 pt-2.5 pb-2 shadow-xl">
+      <!-- Row 1: Brand + 75m Timer + Auto-Rest Pill -->
+      <div class="flex items-center justify-between gap-2 mb-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-6 bg-panatta rounded-full shadow-[0_0_8px_#e6192e]"></div>
+          <div>
+            <div class="font-display font-bold text-base tracking-wide uppercase leading-none text-white">
+              PANATTA <span class="text-panatta">VISUAL</span>
+            </div>
+            <div id="upNextHeaderLabel" class="text-[10px] font-mono text-lime uppercase mt-0.5">
+              NEXT: S1 UPPER
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact Timers -->
+        <div class="flex items-center gap-1.5">
+          <!-- Auto-Rest Pill (Highlights when active) -->
+          <button onclick="skipRestTimer()" id="restPillBtn" class="px-2.5 py-1.5 rounded-xl bg-card border border-gray-800 flex items-center gap-1.5 transition">
+            <span class="text-[10px] font-mono uppercase text-gray-400" id="restLabel">REST</span>
+            <span id="restTimerDisplay" class="font-mono font-extrabold text-sm tabular-nums text-gray-300">00:00</span>
+          </button>
+
+          <!-- 75-Min Cap Pill -->
+          <button onclick="toggleSessionTimer()" id="sessionPillBtn" class="px-2.5 py-1.5 rounded-xl bg-card border border-gray-800 flex items-center gap-1.5 active:scale-95 transition">
+            <span id="sessionDot" class="w-2 h-2 rounded-full bg-panatta"></span>
+            <span id="sessionTimerDisplay" class="font-mono font-extrabold text-sm tabular-nums text-white">75:00</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: 5-Day Horizontal Selector Pills -->
+      <div id="daySelectorRow" class="grid grid-cols-5 gap-1.5">
+        <!-- Populated by JS -->
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 px-3 pt-3 space-y-3.5">
+
+      <!-- ==================================================== -->
+      <!-- TAB 1: WORKOUT FLOOR (SIMPLE VISUAL MACHINE CARDS)   -->
+      <!-- ==================================================== -->
+      <section id="tab-workout" class="space-y-3.5">
+
+        <!-- Day Title + Progress Bar Card -->
+        <div class="bg-card border border-gray-800/90 rounded-2xl p-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span id="dayHeaderBadge" class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-panatta/20 text-panatta font-bold border border-panatta/30">
+                SESSION 1 OF 5
+              </span>
+              <h1 id="dayHeaderTitle" class="font-display font-bold text-lg text-white uppercase mt-1 leading-tight">
+                Upper Body (Chest, Back & Arms)
+              </h1>
+            </div>
+            <div class="text-right shrink-0">
+              <div id="setsProgressText" class="font-mono font-extrabold text-base text-lime tabular-nums">0/17</div>
+              <div class="text-[10px] font-mono text-gray-400 uppercase">SETS DONE</div>
+            </div>
+          </div>
+          <!-- Progress Bar -->
+          <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-2.5">
+            <div id="setsProgressBar" class="h-full bg-lime transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Exercise Cards List -->
+        <div id="exerciseCardsList" class="space-y-3.5">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Finish Workout Button -->
+        <div class="pt-2 pb-4 space-y-2">
+          <button onclick="finishWorkoutSession()" class="w-full py-4 rounded-2xl bg-lime hover:bg-[#a6e600] text-carbon font-display font-bold text-lg uppercase tracking-wider shadow-lg active:scale-98 transition flex items-center justify-center gap-2">
+            <span>✓ FINISH & SAVE WORKOUT</span>
+          </button>
+          <button onclick="resetCurrentDayChecks()" class="w-full py-2.5 rounded-xl bg-card border border-gray-800 text-gray-400 font-mono text-xs uppercase">
+            Reset Today's Checkmarks
+          </button>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- TAB 2: VISUAL MACHINE GUIDE (ALL 26 MACHINES)        -->
+      <!-- ==================================================== -->
+      <section id="tab-guide" class="hidden space-y-3">
+        <div class="bg-card border border-gray-800 rounded-2xl p-3.5">
+          <h2 class="font-display font-bold text-lg uppercase text-white">Panatta Visual Machine Directory</h2>
+          <p class="text-xs text-gray-400 mt-0.5">
+            Don't know the machine name? Match the red/white frame diagram and "Look For" clues below on your gym floor.
+          </p>
+          <input id="guideSearchInput" type="text" oninput="renderMachineGuide()" placeholder="Filter by muscle (Chest, Back, Quads, Glutes...)"
+            class="w-full mt-2.5 bg-carbon border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-panatta" />
+        </div>
+
+        <div id="guideListContainer" class="space-y-2.5">
+          <!-- Rendered by JS -->
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- TAB 3: HISTORY, PROTEIN & GITHUB BACKUP              -->
+      <!-- ==================================================== -->
+      <section id="tab-history" class="hidden space-y-3.5">
+        <!-- Quick Protein & Retention Rule Card -->
+        <div class="bg-card border border-gray-800 rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-display font-bold uppercase text-lime">Daily Muscle Retention Target</span>
+            <span class="text-[10px] font-mono text-gray-400">2.0g Protein / kg</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex-1 bg-carbon border border-gray-800 rounded-xl p-2.5">
+              <label class="text-[10px] font-mono text-gray-400 block">YOUR WEIGHT (KG)</label>
+              <input id="bwInput" type="number" step="0.5" onchange="updateBodyWeight(this.value)"
+                class="w-full bg-transparent font-mono font-bold text-lg text-white focus:outline-none" value="80" />
+            </div>
+            <div class="flex-1 bg-carbon border border-gray-800 rounded-xl p-2.5">
+              <span class="text-[10px] font-mono text-gray-400 block">DAILY PROTEIN</span>
+              <div id="proteinGoalText" class="font-mono font-extrabold text-lg text-lime">160g / day</div>
+            </div>
+          </div>
+          <p class="text-[11px] text-gray-400">
+            💡 Eat 40g carbs 45 mins before lifting so your body never burns muscle tissue for energy.
+          </p>
+        </div>
+
+        <!-- GitHub Pages Data Backup -->
+        <div class="bg-card border border-gray-800 rounded-2xl p-3.5 space-y-2.5">
+          <h3 class="font-display font-bold text-base uppercase text-white">Phone & GitHub Backup</h3>
+          <p class="text-xs text-gray-400">
+            Your weights, seat numbers, and logs auto-save on this phone. Export a backup anytime.
+          </p>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="exportBackupJson()" class="py-2.5 px-3 rounded-xl bg-carbon border border-gray-700 font-display font-bold text-xs uppercase text-lime text-center">
+              ⬇ Save Backup
+            </button>
+            <label class="py-2.5 px-3 rounded-xl bg-carbon border border-gray-700 font-display font-bold text-xs uppercase text-white text-center cursor-pointer block">
+              ⬆ Load Backup
+              <input type="file" accept=".json" onchange="importBackupJson(event)" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Completed Workouts List -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="font-display font-bold text-base uppercase text-white">Completed Workouts</h3>
+            <span id="totalWorkoutsCount" class="text-xs font-mono text-gray-400">0 Logged</span>
+          </div>
+          <div id="historyCardsContainer" class="space-y-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- STICKY BOTTOM 3-TAB BAR (Thumb-Friendly Phone Navigation) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-carbon/95 backdrop-blur-md border-t border-gray-800">
+      <div class="max-w-md mx-auto grid grid-cols-3 gap-1 p-2">
+        <button onclick="switchTab('workout')" id="navBtn-workout" class="py-2.5 rounded-xl font-display font-bold text-xs uppercase flex flex-col items-center justify-center gap-0.5 bg-panatta text-white shadow">
+          <span>🏋️ Workout</span>
+        </button>
+        <button onclick="switchTab('guide')" id="navBtn-guide" class="py-2.5 rounded-xl font-display font-bold text-xs uppercase flex flex-col items-center justify-center gap-0.5 text-gray-400">
+          <span>👁️ Machine Visuals</span>
+        </button>
+        <button onclick="switchTab('history')" id="navBtn-history" class="py-2.5 rounded-xl font-display font-bold text-xs uppercase flex flex-col items-center justify-center gap-0.5 text-gray-400">
+          <span>📈 Log & Backup</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- VISUAL MACHINE SPOTTER MODAL (Enlarged Diagram + How to Find & Use It) -->
+  <div id="machineModal" onclick="closeMachineModal(event)" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="bg-card border border-gray-700 rounded-3xl max-w-sm w-full p-4 space-y-3.5 shadow-2xl">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span id="modalMusclePill" class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-panatta/20 text-panatta font-bold">CHEST</span>
+          <h3 id="modalMachineTitle" class="font-display font-bold text-lg text-white uppercase mt-1 leading-snug">Machine Name</h3>
+        </div>
+        <button onclick="closeMachineModal()" class="w-8 h-8 rounded-full bg-gray-800 text-gray-300 font-bold text-sm flex items-center justify-center">✕</button>
+      </div>
+
+      <!-- Enlarged Custom SVG Diagram -->
+      <div id="modalSvgContainer" class="w-full h-48 bg-carbon border border-gray-800 rounded-2xl flex items-center justify-center p-3">
+        <!-- SVG Injected Here -->
+      </div>
+
+      <!-- Visual Clues to Spot It in the Gym -->
+      <div class="bg-carbon border border-gray-800 rounded-2xl p-3 space-y-2 text-xs">
+        <div>
+          <span class="font-mono font-bold text-lime uppercase block text-[10px]">👁️ HOW TO SPOT THIS MACHINE IN THE GYM:</span>
+          <p id="modalLookFor" class="text-gray-200 mt-0.5 font-medium"></p>
+        </div>
+        <div class="pt-1.5 border-t border-gray-800">
+          <span class="font-mono font-bold text-panatta uppercase block text-[10px]">🎯 HOW TO PERFORM IT:</span>
+          <p id="modalCue" class="text-gray-300 mt-0.5"></p>
+        </div>
+      </div>
+
+      <button onclick="closeMachineModal()" class="w-full py-3 rounded-xl bg-panatta text-white font-display font-bold text-sm uppercase">
+        Got It — Back to Workout
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST BANNER -->
+  <div id="toastEl" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden bg-card border-2 border-lime text-white px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-mono font-bold flex items-center gap-2 max-w-xs w-[90%]">
+    <span id="toastText" class="flex-1">Saved!</span>
+  </div>
+
+  <script>
+    /********************************************************************
+     * 1. CUSTOM SVG VISUAL DIAGRAMS FOR EVERY PANATTA MACHINE ARCHETYPE
+     *    Shows: White/Gray Machine Frame, Red Panatta Upholstery Pads,
+     *    Weight Plates/Stack, and Neon Lime Motion Arrows.
+     ********************************************************************/
+    const MACHINE_SVGS = {
+      // Horizontal / Converging Chest Press
+      chest_press: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <!-- Base & Upright Frame -->
+          <path d="M18 88 L95 88 M35 88 L35 16 L65 16" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Panatta Red Seat & Back Pad -->
+          <rect x="38" y="34" width="9" height="32" rx="3" fill="#e6192e"/>
+          <rect x="38" y="70" width="20" height="8" rx="3" fill="#e6192e"/>
+          <!-- Overhead Converging Lever Arm & Weight Horn -->
+          <path d="M56 18 L76 52 M66 42 L84 42" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
+          <circle cx="64" cy="48" r="8" fill="#1e293b" stroke="#e6192e" stroke-width="3"/>
+          <!-- Neon Motion Arrow (Push Forward) -->
+          <path d="M78 36 L104 36 M97 29 L105 36 L97 43" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="14" fill="#94a3b8" font-size="8" font-family="monospace">UPRIGHT PRESS</text>
+        </svg>`,
+
+      // Incline Converging Chest Press
+      incline_press: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M15 88 L95 88 M32 88 L24 20 L55 18" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Reclined Red Back Pad & Seat -->
+          <path d="M30 36 L44 66" stroke="#e6192e" stroke-width="9" stroke-linecap="round"/>
+          <rect x="44" y="70" width="18" height="7" rx="3" fill="#e6192e"/>
+          <!-- Angled Lever Arm -->
+          <path d="M48 20 L74 48" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
+          <circle cx="62" cy="46" r="8" fill="#1e293b" stroke="#e6192e" stroke-width="3"/>
+          <!-- Upward 45° Push Arrow -->
+          <path d="M76 42 L100 22 M90 21 L101 21 L100 32" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="14" fill="#94a3b8" font-size="8" font-family="monospace">45° INCLINE</text>
+        </svg>`,
+
+      // Overhead Lat Pulldown / High Row
+      lat_pulldown: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <!-- Tall Tower Frame -->
+          <path d="M20 88 L95 88 M35 88 L35 12 L75 12" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Seat & Thigh Rollers -->
+          <rect x="46" y="68" width="22" height="7" rx="3" fill="#e6192e"/>
+          <circle cx="48" cy="56" r="4.5" fill="#e6192e"/>
+          <circle cx="58" cy="56" r="4.5" fill="#e6192e"/>
+          <!-- Overhead Pulldown Horns -->
+          <path d="M72 12 L86 34 L62 40" stroke="#f8fafc" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Pull Down Arrow -->
+          <path d="M88 22 L88 52 M81 45 L88 53 L95 45" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="24" fill="#94a3b8" font-size="8" font-family="monospace">OVERHEAD PULL</text>
+        </svg>`,
+
+      // Chest-Supported Row / Low Row
+      chest_row: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M15 88 L100 88 M82 88 L82 22" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Seat & Angled Chest Support Pad -->
+          <rect x="28" y="68" width="20" height="7" rx="3" fill="#e6192e"/>
+          <path d="M56 38 L50 62" stroke="#e6192e" stroke-width="8" stroke-linecap="round"/>
+          <!-- Row Swing Arm -->
+          <path d="M82 26 L58 50" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
+          <circle cx="76" cy="48" r="8" fill="#1e293b" stroke="#e6192e" stroke-width="3"/>
+          <!-- Pull Backward Arrow -->
+          <path d="M52 46 L24 46 M31 39 L23 46 L31 53" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="14" fill="#94a3b8" font-size="8" font-family="monospace">CHEST PAD ROW</text>
+        </svg>`,
+
+      // Shoulder Deltoid Press
+      shoulder_press: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M20 88 L95 88 M40 88 L40 20" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <rect x="44" y="42" width="8" height="28" rx="3" fill="#e6192e"/>
+          <rect x="44" y="72" width="20" height="7" rx="3" fill="#e6192e"/>
+          <!-- Overhead Press Arms -->
+          <path d="M40 52 L72 34 L72 18" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+          <!-- Vertical Up Arrow -->
+          <path d="M90 52 L90 18 M83 25 L90 17 L97 25" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="14" fill="#94a3b8" font-size="8" font-family="monospace">OVERHEAD PRESS</text>
+        </svg>`,
+
+      // Arm Curl / Preacher Curl
+      arm_curl: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M20 88 L95 88 M35 88 L35 52 M62 88 L62 36" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Seat & Angled Preacher Arm Pad -->
+          <rect x="26" y="64" width="18" height="7" rx="3" fill="#e6192e"/>
+          <path d="M52 38 L68 50" stroke="#e6192e" stroke-width="8" stroke-linecap="round"/>
+          <!-- Rotating Curl Bar -->
+          <path d="M64 46 L86 58" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+          <!-- Curved Curl Up Arrow -->
+          <path d="M92 60 Q96 34 74 26 M81 22 L72 26 L78 34" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="14" fill="#94a3b8" font-size="8" font-family="monospace">ARM PAD CURL</text>
+        </svg>`,
+
+      // Pendulum Squat
+      pendulum_squat: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <!-- Heavy Base & Front Pivot Tower -->
+          <path d="M12 88 L105 88 M82 88 L72 20" stroke="#64748b" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+          <!-- Angled Footplate -->
+          <path d="M54 84 L38 56" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
+          <!-- Swinging Pendulum Arm & Shoulder Pads -->
+          <path d="M74 26 L36 46" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M28 40 L44 52" stroke="#e6192e" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="56" cy="36" r="8" fill="#1e293b" stroke="#e6192e" stroke-width="3"/>
+          <!-- Arc Squat Arrow -->
+          <path d="M22 36 Q14 58 26 74 M18 72 L27 75 L29 66" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="12" y="14" fill="#94a3b8" font-size="8" font-family="monospace">PENDULUM ARC</text>
+        </svg>`,
+
+      // 45-Degree Leg Press
+      leg_press: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <!-- Base & 45° Sled Rails -->
+          <path d="M12 88 L105 88 M28 78 L84 26" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Bottom Reclined Seat -->
+          <path d="M18 64 L32 82" stroke="#e6192e" stroke-width="8" stroke-linecap="round"/>
+          <rect x="32" y="80" width="16" height="6" rx="2" fill="#e6192e"/>
+          <!-- Sled Footplate & Weight Horns -->
+          <path d="M52 38 L66 56" stroke="#f8fafc" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="70" cy="38" r="9" fill="#1e293b" stroke="#e6192e" stroke-width="3"/>
+          <!-- 45° Push Arrow -->
+          <path d="M48 32 L72 12 M62 12 L73 11 L71 22" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="12" y="14" fill="#94a3b8" font-size="8" font-family="monospace">45° SLED RAILS</text>
+        </svg>`,
+
+      // Seated Leg Curl / Leg Extension
+      leg_ext_curl: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M18 88 L95 88 M38 88 L38 56" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Chair Seat & Backrest -->
+          <rect x="28" y="30" width="9" height="28" rx="3" fill="#e6192e"/>
+          <rect x="30" y="56" width="26" height="8" rx="3" fill="#e6192e"/>
+          <!-- Knee Pivot & Shin Roller Arm -->
+          <circle cx="58" cy="60" r="4" fill="#f8fafc"/>
+          <path d="M58 60 L68 82" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="70" cy="82" r="5" fill="#e6192e"/>
+          <!-- Arc Arrow -->
+          <path d="M78 80 Q92 66 86 46 M79 51 L86 45 L92 52" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="12" y="14" fill="#94a3b8" font-size="8" font-family="monospace">SEATED ROLLER</text>
+        </svg>`,
+
+      // Lying Leg Curl
+      lying_curl: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M14 88 L104 88 M30 88 L30 60 M75 88 L75 60" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Angled Face-Down Bench Pads -->
+          <path d="M22 60 L54 52 L84 60" stroke="#e6192e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <!-- Rear Ankle Roller Lever -->
+          <path d="M84 60 L102 72" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="102" cy="72" r="5" fill="#e6192e"/>
+          <!-- Curl Up Arc Arrow -->
+          <path d="M104 58 Q102 34 78 32 M85 26 L77 32 L85 38" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="12" y="14" fill="#94a3b8" font-size="8" font-family="monospace">FACE-DOWN CURL</text>
+        </svg>`,
+
+      // Standing / Seated Calf
+      calf_raise: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M24 88 L90 88 M38 88 L38 14 L68 14" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Shoulder Pads & Foot Block -->
+          <rect x="48" y="24" width="24" height="8" rx="3" fill="#e6192e"/>
+          <rect x="46" y="80" width="22" height="6" rx="2" fill="#f8fafc"/>
+          <!-- Up/Down Vertical Arrow -->
+          <path d="M86 68 L86 28 M79 35 L86 27 L93 35" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="12" fill="#94a3b8" font-size="8" font-family="monospace">CALF PLATFORM</text>
+        </svg>`,
+
+      // Pec Deck / Lateral Delt / Rear Delt Wings
+      fly_wings: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <!-- Center Tower & Overhead Arch -->
+          <path d="M22 88 L98 88 M60 88 L60 16 M34 20 L86 20" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Center Seat & Back Pad -->
+          <rect x="54" y="38" width="12" height="26" rx="3" fill="#e6192e"/>
+          <rect x="52" y="68" width="16" height="7" rx="3" fill="#e6192e"/>
+          <!-- Left & Right Wing Arms -->
+          <path d="M36 20 L30 54 M84 20 L90 54" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+          <!-- Inward / Outward Sweep Arrows -->
+          <path d="M24 52 L44 52 M39 47 L45 52 L39 57" stroke="#b8ff01" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M96 52 L76 52 M81 47 L75 52 L81 57" stroke="#b8ff01" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="13" fill="#94a3b8" font-size="8" font-family="monospace">DUAL WING ARMS</text>
+        </svg>`,
+
+      // Parallel Dip / Pullover Machine
+      dip_pullover: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M20 88 L96 88 M38 88 L38 20" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <rect x="42" y="36" width="9" height="28" rx="3" fill="#e6192e"/>
+          <rect x="42" y="68" width="18" height="7" rx="3" fill="#e6192e"/>
+          <!-- Curved Overhead / Dip Lever -->
+          <path d="M38 28 Q74 24 76 52" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+          <circle cx="62" cy="48" r="8" fill="#1e293b" stroke="#e6192e" stroke-width="3"/>
+          <!-- Downward Arc Arrow -->
+          <path d="M90 30 L90 66 M83 59 L90 67 L97 59" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="14" y="14" fill="#94a3b8" font-size="8" font-family="monospace">LEVER PRESS DOWN</text>
+        </svg>`,
+
+      // Hip Thrust / Deadlift Machine
+      hip_deadlift: `
+        <svg viewBox="0 0 120 100" class="w-full h-full">
+          <path d="M12 88 L106 88 M26 88 L26 54" stroke="#64748b" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Upper Back Bench Pad & Foot Wedge -->
+          <path d="M20 56 L42 64" stroke="#e6192e" stroke-width="8" stroke-linecap="round"/>
+          <path d="M84 86 L96 72" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
+          <!-- Pelvic Roller & Lever Arm -->
+          <path d="M92 86 L58 62" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
+          <circle cx="58" cy="60" r="6" fill="#e6192e"/>
+          <!-- Upward Thrust Arrow -->
+          <path d="M60 46 L60 18 M53 25 L60 17 L67 25" stroke="#b8ff01" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="12" y="14" fill="#94a3b8" font-size="8" font-family="monospace">HIP / HINGE FRAME</text>
+        </svg>`
+    };
+
+    /********************************************************************
+     * 2. THE 5-DAY PANATTA ULPPL SPLIT WITH VISUAL SPOTTER CLUES
+     ********************************************************************/
+    const PANATTA_DAYS = [
+      {
+        id: 's1',
+        short: 'S1 Upper',
+        badge: 'DAY 1 OF 5 • UPPER BODY',
+        title: 'Upper Body — Chest, Back & Arms',
+        exercises: [
+          {
+            id: 's1_e1',
+            name: 'Panatta Converging Chest Press',
+            muscle: 'CHEST',
+            svgType: 'chest_press',
+            lookFor: 'Upright seat with two independent red/steel press arms that angle slightly inward as you push forward.',
+            cue: 'Set seat so handles align with mid-chest. Drive forward until handles almost touch.',
+            sets: 3,
+            repRange: '6–8',
+            defaultWeight: 60,
+            defaultReps: 8,
+            restSec: 120
+          },
+          {
+            id: 's1_e2',
+            name: 'Panatta Converging Lat Pulldown',
+            muscle: 'LATS / BACK',
+            svgType: 'lat_pulldown',
+            lookFor: 'Tall overhead machine with two separate curved handles high above the seat and two red thigh roller pads.',
+            cue: 'Lock thighs under pads. Pull elbows straight down to your sides and pause 1s.',
+            sets: 3,
+            repRange: '8–10',
+            defaultWeight: 55,
+            defaultReps: 10,
+            restSec: 90
+          },
+          {
+            id: 's1_e3',
+            name: 'Panatta Super Incline Press',
+            muscle: 'UPPER CHEST',
+            svgType: 'incline_press',
+            lookFor: 'Reclined 45-degree backrest where the handles push diagonally up and forward overhead.',
+            cue: 'Handles start near your collarbone. Press up and slightly inward.',
+            sets: 3,
+            repRange: '8–10',
+            defaultWeight: 50,
+            defaultReps: 10,
+            restSec: 90
+          },
+          {
+            id: 's1_e4',
+            name: 'Panatta Chest-Supported Row',
+            muscle: 'MID-BACK',
+            svgType: 'chest_row',
+            lookFor: 'Has a vertical red chest pad you lean your torso against while reaching forward to grab horizontal handles.',
+            cue: 'Keep chest glued to the pad and row elbows back behind your ribs.',
+            sets: 3,
+            repRange: '8–10',
+            defaultWeight: 55,
+            defaultReps: 10,
+            restSec: 90
+          },
+          {
+            id: 's1_e5',
+            name: 'Panatta Deltoid Shoulder Press',
+            muscle: 'SHOULDERS',
+            svgType: 'shoulder_press',
+            lookFor: 'Upright chair with handles positioned right at ear/shoulder height that push straight toward the ceiling.',
+            cue: 'Press overhead smoothly without slamming lockout at the top.',
+            sets: 2,
+            repRange: '8–10',
+            defaultWeight: 40,
+            defaultReps: 10,
+            restSec: 90
+          },
+          {
+            id: 's1_e6',
+            name: 'Panatta Arm Curl + Tricep Machine',
+            muscle: 'BICEPS & TRICEPS',
+            svgType: 'arm_curl',
+            lookFor: 'Slanted red elbow pad in front of the seat with a rotating V-handle bar.',
+            cue: 'Rest back of upper arms flat on the angled pad. Curl all the way up and lower slowly.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 30,
+            defaultReps: 12,
+            restSec: 60
+          }
+        ]
+      },
+      {
+        id: 's2',
+        short: 'S2 Lower',
+        badge: 'DAY 2 OF 5 • QUAD FOCUS',
+        title: 'Lower Body — Quads & Calves',
+        exercises: [
+          {
+            id: 's2_e1',
+            name: 'Panatta Super Pendulum Squat',
+            muscle: 'QUADS & GLUTES',
+            svgType: 'pendulum_squat',
+            lookFor: 'Large curved swinging arm with thick red shoulder pads facing an angled steel foot platform.',
+            cue: 'Tuck shoulders under pads, unrack handle, and squat deep along the curved arc.',
+            sets: 3,
+            repRange: '6–8',
+            defaultWeight: 60,
+            defaultReps: 8,
+            restSec: 150
+          },
+          {
+            id: 's2_e2',
+            name: 'Panatta 45° Leg Press',
+            muscle: 'QUADS',
+            svgType: 'leg_press',
+            lookFor: 'Seat sits close to the floor facing a big slanted 45-degree footplate sled on steel rails.',
+            cue: 'Place feet in the lower-middle of the platform for maximum quad focus.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 140,
+            defaultReps: 12,
+            restSec: 120
+          },
+          {
+            id: 's2_e3',
+            name: 'Panatta Seated Leg Curl',
+            muscle: 'HAMSTRINGS',
+            svgType: 'leg_ext_curl',
+            lookFor: 'Upright chair with TWO rollers: one rests behind your ankles, and a lap pad locks down over your knees.',
+            cue: 'Lock the thigh pad tight on your lap and curl your heels down and back under the seat.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 50,
+            defaultReps: 12,
+            restSec: 90
+          },
+          {
+            id: 's2_e4',
+            name: 'Panatta Leg Extension',
+            muscle: 'QUADS',
+            svgType: 'leg_ext_curl',
+            lookFor: 'Upright chair with a single thick roller pad that sits in front of your lower shins/ankles.',
+            cue: 'Kick legs straight up until knees lock out and hold the top squeeze for 1 full second.',
+            sets: 3,
+            repRange: '12–15',
+            defaultWeight: 55,
+            defaultReps: 15,
+            restSec: 75
+          },
+          {
+            id: 's2_e5',
+            name: 'Panatta Standing Calf Machine',
+            muscle: 'CALVES',
+            svgType: 'calf_raise',
+            lookFor: 'Tall frame with two shoulder pads you stand underneath while the balls of your feet rest on a raised step.',
+            cue: 'Drop heels all the way down for a 2-second stretch, then press up high onto your toes.',
+            sets: 4,
+            repRange: '12–15',
+            defaultWeight: 70,
+            defaultReps: 15,
+            restSec: 60
+          }
+        ]
+      },
+      {
+        id: 's3',
+        short: 'S3 Push',
+        badge: 'DAY 3 OF 5 • PUSH DAY',
+        title: 'Push — Chest, Side Delts & Triceps',
+        exercises: [
+          {
+            id: 's3_e1',
+            name: 'Panatta Incline Converging Press',
+            muscle: 'UPPER CHEST',
+            svgType: 'incline_press',
+            lookFor: '45° reclined seat with plate horns on two large independent arms that press diagonally upward.',
+            cue: 'Lower handles until you feel a deep stretch in the upper chest, then drive up.',
+            sets: 3,
+            repRange: '6–8',
+            defaultWeight: 55,
+            defaultReps: 8,
+            restSec: 120
+          },
+          {
+            id: 's3_e2',
+            name: 'Panatta Vertical / Decline Press',
+            muscle: 'MID & LOWER CHEST',
+            svgType: 'chest_press',
+            lookFor: 'Upright seat where the press arms travel straight forward or slightly downward toward the lower ribs.',
+            cue: 'Keep shoulder blades pinched back against the red pad throughout every rep.',
+            sets: 3,
+            repRange: '8–10',
+            defaultWeight: 60,
+            defaultReps: 10,
+            restSec: 90
+          },
+          {
+            id: 's3_e3',
+            name: 'Panatta Pec Deck / Deltoid Flies',
+            muscle: 'CHEST FLY',
+            svgType: 'fly_wings',
+            lookFor: 'Upright seat with two wide swinging vertical wing arms that open out like a butterfly.',
+            cue: 'Keep a slight bend in elbows and bring the two arms together in front of your chest like hugging a tree.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 45,
+            defaultReps: 12,
+            restSec: 75
+          },
+          {
+            id: 's3_e4',
+            name: 'Panatta Lateral Deltoid Machine',
+            muscle: 'SIDE SHOULDERS',
+            svgType: 'fly_wings',
+            lookFor: 'Seat with two padded elbow bolsters on the sides that lift outward and up like bird wings.',
+            cue: 'Push outward with your elbows (not your hands) until arms are parallel to the floor.',
+            sets: 4,
+            repRange: '12–15',
+            defaultWeight: 30,
+            defaultReps: 15,
+            restSec: 60
+          },
+          {
+            id: 's3_e5',
+            name: 'Panatta Parallel Dip Machine',
+            muscle: 'TRICEPS & CHEST',
+            svgType: 'dip_pullover',
+            lookFor: 'Seat with two waist-level handles on your left and right that push straight down toward the floor.',
+            cue: 'Lean slightly forward, press handles straight down until elbows lock out.',
+            sets: 3,
+            repRange: '8–12',
+            defaultWeight: 65,
+            defaultReps: 12,
+            restSec: 75
+          }
+        ]
+      },
+      {
+        id: 's4',
+        short: 'S4 Pull',
+        badge: 'DAY 4 OF 5 • PULL DAY',
+        title: 'Pull — Back Width, Thickness & Biceps',
+        exercises: [
+          {
+            id: 's4_e1',
+            name: 'Panatta Super High Row',
+            muscle: 'LATS & UPPER BACK',
+            svgType: 'lat_pulldown',
+            lookFor: 'Chest pad + thigh rollers with handles angled at 45° overhead (between a pulldown and a row).',
+            cue: 'Pull handles diagonally down and back, driving elbows tight into your ribcage.',
+            sets: 3,
+            repRange: '6–8',
+            defaultWeight: 65,
+            defaultReps: 8,
+            restSec: 120
+          },
+          {
+            id: 's4_e2',
+            name: 'Panatta Super Low Row',
+            muscle: 'LOWER LATS',
+            svgType: 'chest_row',
+            lookFor: 'Chest-supported row where the handles start low (near knee/waist level) and pull upward toward your hips.',
+            cue: 'Use an underhand or neutral grip and pull elbows straight back.',
+            sets: 3,
+            repRange: '8–10',
+            defaultWeight: 60,
+            defaultReps: 10,
+            restSec: 90
+          },
+          {
+            id: 's4_e3',
+            name: 'Panatta Pullover Machine',
+            muscle: 'PURE LATS',
+            svgType: 'dip_pullover',
+            lookFor: 'Has a wrap-around overhead bar and curved elbow pads that swing from above your head down to your waist.',
+            cue: 'Drive through your elbows (not your hands) in a big arc down to your hips.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 50,
+            defaultReps: 12,
+            restSec: 75
+          },
+          {
+            id: 's4_e4',
+            name: 'Panatta Rear Delt Machine',
+            muscle: 'REAR SHOULDERS',
+            svgType: 'fly_wings',
+            lookFor: 'Same dual-wing machine as the Pec Deck, but you sit facing INTO the pad and push the handles backward.',
+            cue: 'Sit chest-to-pad and sweep arms wide apart behind you.',
+            sets: 3,
+            repRange: '12–15',
+            defaultWeight: 35,
+            defaultReps: 15,
+            restSec: 60
+          },
+          {
+            id: 's4_e5',
+            name: 'Panatta Preacher Curl Machine',
+            muscle: 'BICEPS PEAK',
+            svgType: 'arm_curl',
+            lookFor: 'Seat with an angled red arm-rest pad and two rotating curl handles.',
+            cue: 'Keep armpits snug over the top of the pad and squeeze biceps hard at the top.',
+            sets: 3,
+            repRange: '8–12',
+            defaultWeight: 30,
+            defaultReps: 10,
+            restSec: 75
+          }
+        ]
+      },
+      {
+        id: 's5',
+        short: 'S5 Legs',
+        badge: 'DAY 5 OF 5 • POSTERIOR LEGS',
+        title: 'Legs — Glutes, Hamstrings & Core',
+        exercises: [
+          {
+            id: 's5_e1',
+            name: 'Panatta Deadlift / Hinge Machine',
+            muscle: 'HAMSTRINGS & BACK',
+            svgType: 'hip_deadlift',
+            lookFor: 'Low floor platform with two long heavy steel lever arms and neutral side handles at knee height.',
+            cue: 'Stand between the handles, push hips backward to lower, and drive hips forward to stand tall.',
+            sets: 3,
+            repRange: '6–8',
+            defaultWeight: 90,
+            defaultReps: 8,
+            restSec: 150
+          },
+          {
+            id: 's5_e2',
+            name: 'Panatta Super Hip Thrust Machine',
+            muscle: 'GLUTES',
+            svgType: 'hip_deadlift',
+            lookFor: 'Low reclined upper-back pad with a thick padded belt or roller bar that swings across your hips.',
+            cue: 'Drive through your heels to thrust hips to the ceiling and hold the top squeeze for 1s.',
+            sets: 3,
+            repRange: '8–10',
+            defaultWeight: 100,
+            defaultReps: 10,
+            restSec: 120
+          },
+          {
+            id: 's5_e3',
+            name: 'Panatta Lying Leg Curl',
+            muscle: 'HAMSTRINGS',
+            svgType: 'lying_curl',
+            lookFor: 'Low bench angled slightly in the middle where you lie face-down and hook your heels under a rear roller.',
+            cue: 'Keep your hips pressed flat into the pad as you curl heels toward your glutes.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 45,
+            defaultReps: 12,
+            restSec: 90
+          },
+          {
+            id: 's5_e4',
+            name: 'Panatta Leg Press (High & Wide Feet)',
+            muscle: 'GLUTES & HAMS',
+            svgType: 'leg_press',
+            lookFor: '45° angled sled machine—place your feet HIGH and WIDE near the top corners of the platform.',
+            cue: 'High foot placement shifts the load off the knees and onto your glutes and hamstrings.',
+            sets: 3,
+            repRange: '10–12',
+            defaultWeight: 150,
+            defaultReps: 12,
+            restSec: 90
+          },
+          {
+            id: 's5_e5',
+            name: 'Panatta Seated Calf + Ab Crunch',
+            muscle: 'CALVES & ABS',
+            svgType: 'calf_raise',
+            lookFor: 'Seated knee-pad calf unit paired with the Panatta Total Abdominal Crunch chair.',
+            cue: 'Full 2-second stretch on calves, followed by controlled rib-to-pelvis crunches.',
+            sets: 3,
+            repRange: '12–15',
+            defaultWeight: 45,
+            defaultReps: 15,
+            restSec: 60
+          }
+        ]
+      }
+    ];
+
+    /********************************************************************
+     * 3. STATE & LOCALSTORAGE (SIMPLE & BULLETPROOF)
+     ********************************************************************/
+    const STORAGE_KEY = 'panatta_visual_v2';
+
+    let state = {
+      activeDayId: 's1',
+      upNextDayId: 's1',
+      bodyWeightKg: 80,
+      seatMemory: {},      // { [exId]: '4' }
+      currentSets: {},     // { [exId]: [ { weight, reps, done } ] }
+      lastSessionSets: {}, // { [exId]: { weight, reps } }
+      history: []          // [ { date, dayTitle, setsDone, tonnage } ]
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          state = { ...state, ...JSON.parse(raw) };
+        }
+      } catch (e) {}
+      ensureSetsInitialized();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function ensureSetsInitialized() {
+      PANATTA_DAYS.forEach(day => {
+        day.exercises.forEach(ex => {
+          if (!state.seatMemory[ex.id]) state.seatMemory[ex.id] = '3';
+          if (!state.currentSets[ex.id] || state.currentSets[ex.id].length !== ex.sets) {
+            state.currentSets[ex.id] = Array.from({ length: ex.sets }, () => ({
+              weight: ex.defaultWeight,
+              reps: ex.defaultReps,
+              done: false
+            }));
+          }
+        });
+      });
+    }
+
+    /********************************************************************
+     * 4. COMPACT TIMERS (75M CAP + AUTO-REST COUNTDOWN)
+     ********************************************************************/
+    let sessionSec = 75 * 60;
+    let sessionRunning = false;
+    let sessionLoop = null;
+
+    let restSec = 0;
+    let restLoop = null;
+
+    function beepRestFinished() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        [880, 1174.6].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.13);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.15);
+          osc.stop(ctx.currentTime + i * 0.15 + 0.14);
+        });
+      } catch (e) {}
+    }
+
+    function fmtMMSS(s) {
+      const a = Math.max(0, s);
+      return `${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
+    }
+
+    function toggleSessionTimer() {
+      const dot = document.getElementById('sessionDot');
+      if (sessionRunning) {
+        clearInterval(sessionLoop);
+        sessionRunning = false;
+        dot.className = 'w-2 h-2 rounded-full bg-panatta';
+      } else {
+        sessionRunning = true;
+        dot.className = 'w-2 h-2 rounded-full bg-lime animate-ping';
+        sessionLoop = setInterval(() => {
+          sessionSec = Math.max(0, sessionSec - 1);
+          document.getElementById('sessionTimerDisplay').textContent = fmtMMSS(sessionSec);
+        }, 1000);
+      }
+    }
+
+    function triggerRestTimer(seconds) {
+      clearInterval(restLoop);
+      restSec = seconds;
+      if (!sessionRunning && sessionSec === 75 * 60) toggleSessionTimer();
+      updateRestUI();
+
+      restLoop = setInterval(() => {
+        restSec--;
+        if (restSec <= 0) {
+          clearInterval(restLoop);
+          restSec = 0;
+          beepRestFinished();
+          showToast('⚡ REST DONE — Start your next set!');
+        }
+        updateRestUI();
+      }, 1000);
+    }
+
+    function skipRestTimer() {
+      clearInterval(restLoop);
+      restSec = 0;
+      updateRestUI();
+    }
+
+    function updateRestUI() {
+      const disp = document.getElementById('restTimerDisplay');
+      const pill = document.getElementById('restPillBtn');
+      const lbl = document.getElementById('restLabel');
+      disp.textContent = fmtMMSS(restSec);
+
+      if (restSec > 0) {
+        pill.className = 'px-2.5 py-1.5 rounded-xl bg-[#162415] border-2 border-lime flex items-center gap-1.5 transition';
+        disp.className = 'font-mono font-extrabold text-sm tabular-nums text-lime';
+        lbl.textContent = 'SKIP';
+        lbl.className = 'text-[10px] font-mono uppercase text-lime font-bold';
+      } else {
+        pill.className = 'px-2.5 py-1.5 rounded-xl bg-card border border-gray-800 flex items-center gap-1.5 transition';
+        disp.className = 'font-mono font-extrabold text-sm tabular-nums text-gray-400';
+        lbl.textContent = 'REST';
+        lbl.className = 'text-[10px] font-mono uppercase text-gray-400';
+      }
+    }
+
+    /********************************************************************
+     * 5. RENDER WORKOUT FLOOR (ULTRA-SIMPLE PHONE CARDS)
+     ********************************************************************/
+    function getActiveDay() {
+      return PANATTA_DAYS.find(d => d.id === state.activeDayId) || PANATTA_DAYS[0];
+    }
+
+    function selectDay(dayId) {
+      state.activeDayId = dayId;
+      saveState();
+      renderWorkoutTab();
+    }
+
+    function renderWorkoutTab() {
+      const upNextDay = PANATTA_DAYS.find(d => d.id === state.upNextDayId) || PANATTA_DAYS[0];
+      document.getElementById('upNextHeaderLabel').textContent = `UP NEXT IN ORDER: ${upNextDay.short.toUpperCase()}`;
+
+      // Render 5-Day Selector Pills
+      const row = document.getElementById('daySelectorRow');
+      row.innerHTML = PANATTA_DAYS.map(d => {
+        const active = d.id === state.activeDayId;
+        const isNext = d.id === state.upNextDayId;
+        const [code, label] = d.short.split(' ');
+        return `
+          <button onclick="selectDay('${d.id}')"
+            class="relative py-2 rounded-xl font-display font-bold text-xs uppercase transition flex flex-col items-center justify-center border ${
+              active
+                ? 'bg-panatta text-white border-panatta shadow-lg'
+                : 'bg-card text-gray-400 border-gray-800'
+            }">
+            ${isNext ? `<span class="absolute -top-1 right-1 w-2 h-2 rounded-full bg-lime"></span>` : ''}
+            <span class="text-[11px] leading-none">${code}</span>
+            <span class="text-[10px] opacity-85 mt-0.5">${label}</span>
+          </button>
+        `;
+      }).join('');
+
+      const day = getActiveDay();
+      document.getElementById('dayHeaderBadge').textContent = day.badge;
+      document.getElementById('dayHeaderTitle').textContent = day.title;
+
+      let totalSets = 0;
+      let doneSets = 0;
+
+      const cardsHtml = day.exercises.map((ex, idx) => {
+        const sets = state.currentSets[ex.id] || [];
+        const seat = state.seatMemory[ex.id] || '3';
+        const last = state.lastSessionSets[ex.id];
+        const svgDiagram = MACHINE_SVGS[ex.svgType] || MACHINE_SVGS.chest_press;
+
+        const setRowsHtml = sets.map((s, sIdx) => {
+          totalSets++;
+          if (s.done) doneSets++;
+
+          return `
+            <div class="grid grid-cols-12 items-center gap-1.5 p-2 rounded-xl border border-gray-800/90 bg-carbon transition ${s.done ? 'done-row' : ''}">
+              <!-- Set # -->
+              <div class="col-span-2 flex items-center gap-1">
+                <span class="w-6 h-6 rounded-lg bg-cardLight border border-gray-700 font-mono font-bold text-xs flex items-center justify-center text-white">
+                  ${sIdx + 1}
+                </span>
+              </div>
+
+              <!-- Weight (kg) with Big + / - buttons -->
+              <div class="col-span-4">
+                <div class="flex items-center bg-card rounded-xl border border-gray-700 overflow-hidden h-10">
+                  <button type="button" onclick="stepVal('${ex.id}', ${sIdx}, 'weight', -2.5)" class="w-8 h-full font-mono font-bold text-sm text-gray-300 active:bg-panatta active:text-white">−</button>
+                  <input type="number" step="0.5" value="${s.weight}"
+                    onchange="editVal('${ex.id}', ${sIdx}, 'weight', this.value)"
+                    class="w-full bg-transparent text-center font-mono font-bold text-sm text-white focus:outline-none tabular-nums" />
+                  <button type="button" onclick="stepVal('${ex.id}', ${sIdx}, 'weight', 2.5)" class="w-8 h-full font-mono font-bold text-sm text-gray-300 active:bg-panatta active:text-white">+</button>
+                </div>
+              </div>
+
+              <!-- Reps with Big + / - buttons -->
+              <div class="col-span-3">
+                <div class="flex items-center bg-card rounded-xl border border-gray-700 overflow-hidden h-10">
+                  <button type="button" onclick="stepVal('${ex.id}', ${sIdx}, 'reps', -1)" class="w-7 h-full font-mono font-bold text-sm text-gray-300 active:bg-panatta active:text-white">−</button>
+                  <input type="number" step="1" value="${s.reps}"
+                    onchange="editVal('${ex.id}', ${sIdx}, 'reps', this.value)"
+                    class="w-full bg-transparent text-center font-mono font-bold text-sm text-white focus:outline-none tabular-nums" />
+                  <button type="button" onclick="stepVal('${ex.id}', ${sIdx}, 'reps', 1)" class="w-7 h-full font-mono font-bold text-sm text-gray-300 active:bg-panatta active:text-white">+</button>
+                </div>
+              </div>
+
+              <!-- Big One-Tap DONE Button -->
+              <div class="col-span-3">
+                <button type="button" onclick="toggleSetDone('${ex.id}', ${sIdx}, ${ex.restSec})"
+                  class="w-full h-10 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition flex items-center justify-center ${
+                    s.done
+                      ? 'bg-lime text-carbon font-extrabold shadow-md'
+                      : 'bg-cardLight text-gray-300 border border-gray-700 active:scale-95'
+                  }">
+                  ${s.done ? '✓ DONE' : 'LOG'}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <article class="bg-card border border-gray-800/90 rounded-2xl p-3.5 space-y-3 shadow-lg">
+            <!-- Top Row: Interactive Machine SVG Visual + Name + Spotter Clue -->
+            <div class="flex gap-3 items-start">
+              <!-- Tappable Machine Visual Diagram Box -->
+              <button type="button" onclick="openMachineModal('${ex.id}')"
+                class="w-24 h-24 rounded-2xl bg-carbon border border-gray-700/90 p-1.5 shrink-0 flex flex-col items-center justify-between relative group active:scale-95 transition">
+                <div class="w-full h-16">
+                  ${svgDiagram}
+                </div>
+                <span class="text-[9px] font-mono uppercase text-lime bg-lime/10 px-1.5 py-0.5 rounded border border-lime/30">
+                  🔍 TAP VIEW
+                </span>
+              </button>
+
+              <!-- Machine Info & How to Spot It -->
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-panatta/20 text-panatta">
+                    #${idx + 1} • ${ex.muscle}
+                  </span>
+                  <span class="text-[10px] font-mono text-gray-400">${ex.sets}×${ex.repRange}</span>
+                </div>
+
+                <h2 onclick="openMachineModal('${ex.id}')" class="font-display font-bold text-base text-white uppercase mt-1 leading-snug cursor-pointer hover:text-lime">
+                  ${ex.name}
+                </h2>
+
+                <!-- Visual Identification Cue right on the card -->
+                <p class="text-[11px] text-gray-300 mt-1 leading-snug bg-carbon/90 px-2.5 py-1.5 rounded-xl border border-gray-800">
+                  <strong class="text-lime font-mono text-[10px] uppercase">Spot It:</strong> ${ex.lookFor}
+                </p>
+              </div>
+            </div>
+
+            <!-- Middle Sub-bar: Seat Number Memory + Last Session Benchmark -->
+            <div class="flex items-center justify-between gap-2 px-1 pt-1 border-t border-gray-800/70 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-mono uppercase text-gray-400">SEAT #:</span>
+                <input type="text" value="${seat}" onchange="saveSeat('${ex.id}', this.value)"
+                  class="w-11 bg-carbon border border-gray-700 rounded-lg py-0.5 text-center font-mono font-bold text-xs text-lime focus:outline-none focus:border-panatta" />
+              </div>
+              <div class="text-[11px] font-mono text-gray-400">
+                ${last ? `Last: <strong class="text-white">${last.weight}kg × ${last.reps}</strong>` : `Target: <strong class="text-gray-200">${ex.defaultWeight}kg × ${ex.defaultReps}</strong>`}
+              </div>
+            </div>
+
+            <!-- Column Headers for Set List -->
+            <div class="grid grid-cols-12 px-2 text-[10px] font-mono uppercase text-gray-400">
+              <div class="col-span-2">SET</div>
+              <div class="col-span-4 text-center">WEIGHT (KG)</div>
+              <div class="col-span-3 text-center">REPS</div>
+              <div class="col-span-3 text-right pr-2">STATUS</div>
+            </div>
+
+            <!-- Simple Set Rows -->
+            <div class="space-y-1.5">
+              ${setRowsHtml}
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      document.getElementById('exerciseCardsList').innerHTML = cardsHtml;
+      document.getElementById('setsProgressText').textContent = `${doneSets}/${totalSets}`;
+      const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+      document.getElementById('setsProgressBar').style.width = `${pct}%`;
+    }
+
+    /********************************************************************
+     * 6. SET INPUT & COMPLETION HANDLERS
+     ********************************************************************/
+    function saveSeat(exId, val) {
+      state.seatMemory[exId] = val;
+      saveState();
+      showToast(`Seat #${val} saved`);
+    }
+
+    function stepVal(exId, sIdx, field, delta) {
+      const row = state.currentSets[exId][sIdx];
+      if (!row) return;
+      if (field === 'weight') {
+        row.weight = Math.max(0, Math.round((parseFloat(row.weight) + delta) * 10) / 10);
+      } else {
+        row.reps = Math.max(1, (parseInt(row.reps, 10) || 0) + delta);
+      }
+      saveState();
+      renderWorkoutTab();
+    }
+
+    function editVal(exId, sIdx, field, val) {
+      const row = state.currentSets[exId][sIdx];
+      if (!row) return;
+      row[field] = field === 'weight' ? Math.max(0, parseFloat(val) || 0) : Math.max(1, parseInt(val, 10) || 1);
+      saveState();
+      renderWorkoutTab();
+    }
+
+    function toggleSetDone(exId, sIdx, restSeconds) {
+      const row = state.currentSets[exId][sIdx];
+      if (!row) return;
+      row.done = !row.done;
+      if (row.done) {
+        state.lastSessionSets[exId] = { weight: row.weight, reps: row.reps };
+        triggerRestTimer(restSeconds);
+      }
+      saveState();
+      renderWorkoutTab();
+    }
+
+    function resetCurrentDayChecks() {
+      const day = getActiveDay();
+      day.exercises.forEach(ex => {
+        (state.currentSets[ex.id] || []).forEach(s => (s.done = false));
+      });
+      saveState();
+      renderWorkoutTab();
+      showToast('Checkmarks reset for today');
+    }
+
+    function finishWorkoutSession() {
+      const day = getActiveDay();
+      let setsCount = 0;
+      let tonnage = 0;
+
+      day.exercises.forEach(ex => {
+        (state.currentSets[ex.id] || []).forEach(s => {
+          if (s.done) {
+            setsCount++;
+            tonnage += (parseFloat(s.weight) || 0) * (parseInt(s.reps, 10) || 0);
+            state.lastSessionSets[ex.id] = { weight: s.weight, reps: s.reps };
+          }
+        });
+      });
+
+      if (setsCount === 0) {
+        showToast('Tap LOG on at least 1 set first!');
+        return;
+      }
+
+      state.history.unshift({
+        id: Date.now(),
+        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        dayShort: day.short,
+        dayTitle: day.title,
+        setsCount,
+        tonnage: Math.round(tonnage)
+      });
+
+      // Reset checkmarks for next week and advance 1-to-5 sequence
+      day.exercises.forEach(ex => {
+        (state.currentSets[ex.id] || []).forEach(s => (s.done = false));
+      });
+
+      const curIdx = PANATTA_DAYS.findIndex(d => d.id === day.id);
+      const nextDay = PANATTA_DAYS[(curIdx + 1) % PANATTA_DAYS.length];
+      state.upNextDayId = nextDay.id;
+      state.activeDayId = nextDay.id;
+
+      skipRestTimer();
+      saveState();
+      renderWorkoutTab();
+      showToast(`✓ Workout Saved! Next up: ${nextDay.short}`);
+    }
+
+    /********************************************************************
+     * 7. VISUAL MACHINE SPOTTER MODAL & DIRECTORY TAB
+     ********************************************************************/
+    function findExerciseById(exId) {
+      for (const d of PANATTA_DAYS) {
+        const found = d.exercises.find(e => e.id === exId);
+        if (found) return { ex: found, day: d };
+      }
+      return null;
+    }
+
+    function openMachineModal(exId) {
+      const match = findExerciseById(exId);
+      if (!match) return;
+      const { ex, day } = match;
+      document.getElementById('modalMusclePill').textContent = `${day.short.toUpperCase()} • ${ex.muscle}`;
+      document.getElementById('modalMachineTitle').textContent = ex.name;
+      document.getElementById('modalSvgContainer').innerHTML = MACHINE_SVGS[ex.svgType] || MACHINE_SVGS.chest_press;
+      document.getElementById('modalLookFor').textContent = ex.lookFor;
+      document.getElementById('modalCue').textContent = ex.cue;
+      document.getElementById('machineModal').classList.remove('hidden');
+    }
+
+    function closeMachineModal() {
+      document.getElementById('machineModal').classList.add('hidden');
+    }
+
+    function renderMachineGuide() {
+      const q = (document.getElementById('guideSearchInput')?.value || '').toLowerCase().trim();
+      const container = document.getElementById('guideListContainer');
+      const items = [];
+
+      PANATTA_DAYS.forEach(day => {
+        day.exercises.forEach(ex => {
+          if (
+            !q ||
+            ex.name.toLowerCase().includes(q) ||
+            ex.muscle.toLowerCase().includes(q) ||
+            ex.lookFor.toLowerCase().includes(q)
+          ) {
+            items.push(`
+              <div onclick="openMachineModal('${ex.id}')" class="bg-card border border-gray-800 rounded-2xl p-3 flex gap-3 items-center cursor-pointer active:scale-98 transition">
+                <div class="w-20 h-20 rounded-xl bg-carbon border border-gray-800 p-1.5 shrink-0">
+                  ${MACHINE_SVGS[ex.svgType]}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-mono font-bold text-panatta uppercase">${day.short}</span>
+                    <span class="text-[10px] font-mono text-lime uppercase">• ${ex.muscle}</span>
+                  </div>
+                  <h4 class="font-display font-bold text-sm text-white uppercase mt-0.5 truncate">${ex.name}</h4>
+                  <p class="text-[11px] text-gray-400 mt-0.5 line-clamp-2">${ex.lookFor}</p>
+                </div>
+              </div>
+            `);
+          }
+        });
+      });
+
+      container.innerHTML = items.join('');
+    }
+
+    /********************************************************************
+     * 8. HISTORY, BODYWEIGHT & BACKUP TAB
+     ********************************************************************/
+    function updateBodyWeight(val) {
+      const kg = parseFloat(val) || 80;
+      state.bodyWeightKg = kg;
+      document.getElementById('proteinGoalText').textContent = `${Math.round(kg * 2)}g / day`;
+      saveState();
+    }
+
+    function renderHistoryTab() {
+      document.getElementById('bwInput').value = state.bodyWeightKg || 80;
+      document.getElementById('proteinGoalText').textContent = `${Math.round((state.bodyWeightKg || 80) * 2)}g / day`;
+
+      const list = state.history || [];
+      document.getElementById('totalWorkoutsCount').textContent = `${list.length} Logged`;
+      const container = document.getElementById('historyCardsContainer');
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="bg-card border border-gray-800 rounded-2xl p-5 text-center text-xs text-gray-400">
+            No workouts finished yet. Tap <strong>LOG</strong> on your sets and press <strong>Finish & Save Workout</strong>.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = list.map(item => `
+        <div class="bg-card border border-gray-800 rounded-2xl p-3 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-mono text-panatta font-bold uppercase">${item.dayShort} • ${item.date}</span>
+            <h4 class="font-display font-bold text-sm text-white uppercase">${item.dayTitle}</h4>
+          </div>
+          <div class="text-right font-mono">
+            <div class="text-xs font-bold text-lime">${item.setsCount} Sets</div>
+            <div class="text-[11px] text-gray-400">${item.tonnage.toLocaleString()} kg</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function exportBackupJson() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `panatta-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup file downloaded!');
+    }
+
+    function importBackupJson(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          state = { ...state, ...parsed };
+          ensureSetsInitialized();
+          saveState();
+          renderWorkoutTab();
+          renderHistoryTab();
+          showToast('✓ Backup loaded!');
+        } catch (err) {
+          showToast('Invalid backup file');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /********************************************************************
+     * 9. TAB NAVIGATION & TOASTS
+     ********************************************************************/
+    function switchTab(tab) {
+      ['workout', 'guide', 'history'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`navBtn-${t}`);
+        btn.className = t === tab
+          ? 'py-2.5 rounded-xl font-display font-bold text-xs uppercase flex flex-col items-center justify-center gap-0.5 bg-panatta text-white shadow'
+          : 'py-2.5 rounded-xl font-display font-bold text-xs uppercase flex flex-col items-center justify-center gap-0.5 text-gray-400';
+      });
+      if (tab === 'workout') renderWorkoutTab();
+      if (tab === 'guide') renderMachineGuide();
+      if (tab === 'history') renderHistoryTab();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toastEl');
+      document.getElementById('toastText').textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderWorkoutTab();
+    });
+  </script>
+</body>
+</html>
